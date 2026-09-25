@@ -98,10 +98,12 @@ function Dashboard() {
       toast.error(error.message);
       return;
     }
-    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    const { data: signed } = await supabase.storage
+      .from("avatars")
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
     const { error: updateError } = await supabase
       .from("profiles")
-      .update({ avatar_url: data.publicUrl })
+      .update({ avatar_url: signed?.signedUrl ?? null })
       .eq("id", user.id);
     setUploading(false);
     if (updateError) {
