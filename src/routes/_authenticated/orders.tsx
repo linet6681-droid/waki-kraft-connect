@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -68,7 +68,19 @@ function Orders() {
       if (error) throw error;
       return (data ?? []) as unknown as OrderRow[];
     },
+    refetchInterval: 20000,
   });
+
+  useEffect(() => {
+    if (!orders.data) return;
+    const key = "waki-accepted-seen";
+    const seen: string[] = JSON.parse(localStorage.getItem(key) ?? "[]");
+    const fresh = orders.data.filter((o) => o.payment_verified && !seen.includes(o.id));
+    fresh.forEach((o) =>
+      toast.success(`Order ${o.order_number}: Your payment has been accepted.`, { duration: 8000 }),
+    );
+    if (fresh.length) localStorage.setItem(key, JSON.stringify([...seen, ...fresh.map((o) => o.id)]));
+  }, [orders.data]);
 
   const submitCode = useMutation({
     mutationFn: async ({ id, code }: { id: string; code: string }) => {
