@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -68,31 +68,37 @@ function Orders() {
       if (error) throw error;
       return (data ?? []) as unknown as OrderRow[];
     },
+    refetchInterval: 20000,
   });
+
+  useEffect(() => {
+    if (!orders.data) return;
+    const key = "waki-accepted-seen";
+    const seen: string[] = JSON.parse(localStorage.getItem(key) ?? "[]");
+    const fresh = orders.data.filter((o) => o.payment_verified && !seen.includes(o.id));
+    fresh.forEach((o) =>
+      toast.success(`Order ${o.order_number}: Your payment has been accepted.`, { duration: 8000 }),
+    );
+    if (fresh.length) localStorage.setItem(key, JSON.stringify([...seen, ...fresh.map((o) => o.id)]));
+  }, [orders.data]);
 
   const submitCode = useMutation({
     mutationFn: async ({ id, code }: { id: string; code: string }) => {
-      const { data, error } = await supabase.rpc("verify_mpesa_payment" as never, {
-        _order_id: id,
-        _code: code,
-      } as never);
+      const trimmed = code.trim().toUpperCase();
+      if (trimmed.length < 8 || trimmed.length > 15) {
+        throw new Error("Enter the M-Pesa code exactly as it appears in your message.");
+      }
+      const { error } = await supabase
+        .from("orders")
+        .update({ mpesa_code: trimmed, status: "Payment Verification", payment_note: null })
+        .eq("id", id);
       if (error) throw error;
-      const result = data as unknown as string;
-      if (result === "declined_invalid")
-        throw new Error("Payment declined: that is not a valid M-Pesa code.");
-      if (result === "declined_used")
-        throw new Error("Payment declined: this M-Pesa code has already been used.");
-      if (result !== "paid" && result !== "already_paid")
-        throw new Error("Payment could not be verified.");
     },
     onSuccess: () => {
-      toast.success("Thank you for shopping with us! Your package will be delivered soon.");
+      toast.success("Code accepted. You will be notified once we confirm your payment.");
       queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
-      queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
-    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const cancelOrder = useMutation({
@@ -171,14 +177,25 @@ function Orders() {
             </p>
 
             {order.payment_verified ? (
-              <p className="mt-4 flex items-center gap-2 rounded-lg bg-secondary p-3 text-sm font-medium text-foreground">
-                <CheckCircle2 className="h-5 w-5 text-success" />
-                Thank you for shopping with us! Your package will be delivered soon.
-              </p>
+              <div className="mt-4 flex items-start gap-2 rounded-lg bg-secondary p-3 text-sm text-foreground">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+                <div>
+                  <p className="font-semibold">Your payment has been accepted.</p>
+                  <p>Thank you for shopping with us! Your package will be delivered soon.</p>
+                </div>
+              </div>
             ) : order.status === "Cancelled" ? (
               <p className="mt-4 rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
                 This order was cancelled.
               </p>
+            ) : order.status === "Payment Verification" && order.mpesa_code ? (
+              <div className="mt-4 rounded-lg bg-secondary p-4 text-sm">
+                <p className="font-semibold">M-Pesa code received: {order.mpesa_code}</p>
+                <p className="mt-1 text-muted-foreground">
+                  Your code has been accepted. We are confirming the payment on our phone and you
+                  will be notified here once it is confirmed.
+                </p>
+              </div>
             ) : (
               <div className="mt-4 rounded-lg bg-secondary p-4">
                 <h3 className="font-display text-base">M-Pesa payment</h3>
