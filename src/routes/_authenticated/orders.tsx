@@ -72,21 +72,27 @@ function Orders() {
 
   const submitCode = useMutation({
     mutationFn: async ({ id, code }: { id: string; code: string }) => {
-      const trimmed = code.trim().toUpperCase();
-      if (trimmed.length < 8 || trimmed.length > 15) {
-        throw new Error("Enter the M-Pesa code exactly as it appears in your message.");
-      }
-      const { error } = await supabase
-        .from("orders")
-        .update({ mpesa_code: trimmed, status: "Payment Verification" })
-        .eq("id", id);
+      const { data, error } = await supabase.rpc("verify_mpesa_payment" as never, {
+        _order_id: id,
+        _code: code,
+      } as never);
       if (error) throw error;
+      const result = data as unknown as string;
+      if (result === "declined_invalid")
+        throw new Error("Payment declined: that is not a valid M-Pesa code.");
+      if (result === "declined_used")
+        throw new Error("Payment declined: this M-Pesa code has already been used.");
+      if (result !== "paid" && result !== "already_paid")
+        throw new Error("Payment could not be verified.");
     },
     onSuccess: () => {
-      toast.success("Code submitted. We are verifying your payment.");
+      toast.success("Thank you for shopping with us! Your package will be delivered soon.");
       queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      toast.error(error.message);
+      queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+    },
   });
 
   const cancelOrder = useMutation({
@@ -201,11 +207,6 @@ function Orders() {
                     Verify Payment
                   </Button>
                 </div>
-                {order.status === "Payment Verification" && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Code received. Our team is confirming your payment.
-                  </p>
-                )}
                 {order.payment_note && (
                   <p className="mt-2 text-xs text-destructive">{order.payment_note}</p>
                 )}
