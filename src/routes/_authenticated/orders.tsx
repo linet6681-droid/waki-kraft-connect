@@ -165,14 +165,25 @@ function Orders() {
             </p>
 
             {order.payment_verified ? (
-              <p className="mt-4 flex items-center gap-2 rounded-lg bg-secondary p-3 text-sm font-medium text-foreground">
-                <CheckCircle2 className="h-5 w-5 text-success" />
-                Thank you for shopping with us! Your package will be delivered soon.
-              </p>
+              <div className="mt-4 flex items-start gap-2 rounded-lg bg-secondary p-3 text-sm text-foreground">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+                <div>
+                  <p className="font-semibold">Your payment has been accepted.</p>
+                  <p>Thank you for shopping with us! Your package will be delivered soon.</p>
+                </div>
+              </div>
             ) : order.status === "Cancelled" ? (
               <p className="mt-4 rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
                 This order was cancelled.
               </p>
+            ) : order.status === "Payment Verification" && order.mpesa_code ? (
+              <div className="mt-4 rounded-lg bg-secondary p-4 text-sm">
+                <p className="font-semibold">M-Pesa code received: {order.mpesa_code}</p>
+                <p className="mt-1 text-muted-foreground">
+                  Your code has been accepted. We are confirming the payment on our phone and you
+                  will be notified here once it is confirmed.
+                </p>
+              </div>
             ) : (
               <div className="mt-4 rounded-lg bg-secondary p-4">
                 <h3 className="font-display text-base">M-Pesa payment</h3>
