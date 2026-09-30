@@ -89,6 +89,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Waki Packages supplies quality brown paper packaging bags, book covers, envelopes, cake boxes, popcorn bags, gift bags and charcoal briquettes in Kiria-ini Town, Murang'a County.",
       },
       { name: "author", content: "Waki Packages" },
+      { name: "theme-color", content: "#7a4a1f" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "Waki" },
       { property: "og:title", content: "Waki Packages | Paper Packaging & Production" },
       {
         property: "og:description",
@@ -106,6 +109,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
