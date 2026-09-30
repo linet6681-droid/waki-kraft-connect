@@ -410,6 +410,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      verify_mpesa_payment: {
+        Args: { _code: string; _order_id: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "customer"
