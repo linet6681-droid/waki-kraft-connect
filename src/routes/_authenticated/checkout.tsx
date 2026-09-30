@@ -47,20 +47,8 @@ function Checkout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [zoneId, setZoneId] = useState<string>("");
+  const [area, setArea] = useState<"inside" | "outside">("inside");
   const [form, setForm] = useState({ name: "", phone: "", location: "", notes: "" });
-
-  const zones = useQuery({
-    queryKey: ["delivery-zones"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("delivery_zones")
-        .select("id, name, fee")
-        .order("fee");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
 
   useEffect(() => {
     if (profile) {
@@ -73,15 +61,11 @@ function Checkout() {
     }
   }, [profile]);
 
-  useEffect(() => {
-    if (!zoneId && zones.data?.length) setZoneId(zones.data[0]!.id);
-  }, [zones.data, zoneId]);
-
   const zone = useMemo(
-    () => zones.data?.find((z) => z.id === zoneId) ?? null,
-    [zones.data, zoneId],
+    () => ({ name: area === "inside" ? "Kiria-ini Town" : "Outside Kiria-ini Town" }),
+    [area],
   );
-  const deliveryFee = Number(zone?.fee ?? 0);
+  const deliveryFee = 0;
   const total = subtotal + deliveryFee;
 
   const placeOrder = useMutation({
@@ -182,21 +166,20 @@ function Checkout() {
             </div>
             <div className="sm:col-span-2">
               <Label htmlFor="o-zone">Delivery area</Label>
-              <Select value={zoneId} onValueChange={setZoneId}>
+              <Select value={area} onValueChange={(v) => setArea(v as "inside" | "outside")}>
                 <SelectTrigger id="o-zone" className="mt-1 h-12">
-                  <SelectValue placeholder="Choose your area" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {zones.data?.map((z) => (
-                    <SelectItem key={z.id} value={z.id}>
-                      {z.name} — {Number(z.fee) === 0 ? "Free delivery" : ksh(Number(z.fee))}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="inside">Within Kiria-ini Town — Free delivery</SelectItem>
+                  <SelectItem value="outside">Outside Kiria-ini Town</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="sm:col-span-2">
-              <Label htmlFor="o-location">Exact delivery location</Label>
+              <Label htmlFor="o-location">
+                {area === "outside" ? "Type your delivery location" : "Exact delivery location"}
+              </Label>
               <Input
                 id="o-location"
                 className="mt-1 h-12"
@@ -218,8 +201,9 @@ function Checkout() {
             </div>
           </div>
           <p className="mt-4 rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
-            Delivery within Kiria-ini Town is free. For other locations the fee shown here applies,
-            and our team may adjust it after confirming your exact location.
+            {area === "inside"
+              ? "Delivery within Kiria-ini Town is free."
+              : "Delivery outside Kiria-ini Town: our team will call you to agree on the delivery cost for your location."}
           </p>
         </div>
 
@@ -242,7 +226,7 @@ function Checkout() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Delivery fee</dt>
-              <dd>{deliveryFee === 0 ? "FREE" : ksh(deliveryFee)}</dd>
+              <dd>{area === "inside" ? "FREE" : "Agreed by phone"}</dd>
             </div>
             <div className="flex justify-between border-t border-border pt-2 text-base font-semibold">
               <dt>Total</dt>
