@@ -262,7 +262,11 @@ function AdminOrders() {
                 onClick={() =>
                   update.mutate({
                     id: order.id,
-                    patch: { payment_verified: true, status: "Paid", payment_note: null },
+                    patch: {
+                      payment_verified: true,
+                      status: "Paid",
+                      payment_note: "Your payment has been accepted.",
+                    },
                   })
                 }
               >

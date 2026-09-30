@@ -72,27 +72,21 @@ function Orders() {
 
   const submitCode = useMutation({
     mutationFn: async ({ id, code }: { id: string; code: string }) => {
-      const { data, error } = await supabase.rpc("verify_mpesa_payment" as never, {
-        _order_id: id,
-        _code: code,
-      } as never);
+      const trimmed = code.trim().toUpperCase();
+      if (trimmed.length < 8 || trimmed.length > 15) {
+        throw new Error("Enter the M-Pesa code exactly as it appears in your message.");
+      }
+      const { error } = await supabase
+        .from("orders")
+        .update({ mpesa_code: trimmed, status: "Payment Verification", payment_note: null })
+        .eq("id", id);
       if (error) throw error;
-      const result = data as unknown as string;
-      if (result === "declined_invalid")
-        throw new Error("Payment declined: that is not a valid M-Pesa code.");
-      if (result === "declined_used")
-        throw new Error("Payment declined: this M-Pesa code has already been used.");
-      if (result !== "paid" && result !== "already_paid")
-        throw new Error("Payment could not be verified.");
     },
     onSuccess: () => {
-      toast.success("Thank you for shopping with us! Your package will be delivered soon.");
+      toast.success("Code accepted. You will be notified once we confirm your payment.");
       queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
-      queryClient.invalidateQueries({ queryKey: ["my-orders", user?.id] });
-    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const cancelOrder = useMutation({
