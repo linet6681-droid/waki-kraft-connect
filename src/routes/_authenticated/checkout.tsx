@@ -73,7 +73,6 @@ function Checkout() {
       const parsed = schema.safeParse(form);
       if (!parsed.success) throw new Error(parsed.error.issues[0]!.message);
       if (!items.length) throw new Error("Your cart is empty.");
-      if (!zone) throw new Error("Choose your delivery area.");
 
       const { data: order, error } = await supabase
         .from("orders")
